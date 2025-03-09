@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物品分类管理系统</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #F3F5FA;
+            padding: 2rem 0;
+        }
+
+        #data-table{
+            caret-color: transparent;
+        }
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .control-bar {
+            position: sticky;
+            top: 0;
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 20px;
+            align-items: center;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 999;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .category-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select, input {
+            padding: 0.8rem 1.1rem;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            min-width: 200px;
+            font-size: 1rem;
+        }
+        /*分类栏长度*/
+        #main-category {
+            min-width: 260px;
+            width: auto;
+        }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            color: white;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            background: #1890ff; /* a2的蓝色 */
+            box-shadow: 0 2px 8px rgba(24,144,255,0.2);
+        }
+
+        button:hover {
+            background: #40a9ff; /* a2的悬停蓝 */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(24,144,255,0.3);
+        }
+        #search-btn::before {
+            content: "🔍";
+            margin-right: 8px;
+        }
+        .upload-wrapper button::before {
+            content: "📁";
+            margin-right: 8px;
+        }
+        #reset-search::before {
+            content: "↻";
+            margin-right: 8px;
+        }
+
+        #reset-all::before {
+            content: "🔄";
+            margin-right: 8px;
+        }
+
+        .reset-btn {
+            margin-left: 10px;
+        }
+        
+        .reset-all-btn {
+            margin-right: 10px;
+            background: #52c41a; /* 绿色按钮 */
+            box-shadow: 0 2px 8px rgba(82,196,26,0.2);
+        }
+        
+        .reset-all-btn:hover {
+            background: #73d13d; /* 悬停绿色 */
+            box-shadow: 0 4px 12px rgba(82,196,26,0.3);
+        }
+
+
+
+
+        .search-group {
+            display: flex;
+            gap: 0.8rem;
+            flex-grow: 1;
+            max-width: 500px;
+        }
+
+        #search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.8rem;
+        }
+
+        .file-info {
+            color: #666;
+            font-size: 1rem;
+            min-width: 50px;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        th, td {
+            position: relative; /* 新增定位上下文 */
+            padding: 1.2rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid #e8e8e8;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        td:hover {
+            background: #f8f9fa;
+        }
+
+        td:hover::after {
+            content: "点击复制";
+            position: absolute;
+            right: 6px;  /* 调整右侧间距 */
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 6px 6px;
+            border-radius: 9px;
+            font-size: 12px;
+            animation: fadeIn 0.1s;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        th {
+            background: #fafafa;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .upload-wrapper {
+            position: relative;
+            min-width: 120px;
+        }
+        .upload-wrapper:hover button {
+            background: #40a9ff; /* a2的悬停蓝 */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(24,144,255,0.3);
+        }
+
+        #file-input {
+            opacity: 0;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            z-index: 1; /* 确保input在按钮上层 */
+        }
+        
+        /* 让按钮内的input可点击 */
+        .upload-wrapper button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 让input只在按钮区域内可点击 */
+        .upload-wrapper button input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+
+        .back-to-top {
+            position: fixed;
+            bottom: 50px;
+            right: 50px;
+            padding: 18px 28px;
+            background: linear-gradient(135deg, #1890ff, #40a9ff);
+            color: white;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px rgba(24, 144, 255, 0.3);
+            z-index: 1000;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(30px);
+            font-weight: 500;
+        }
+
+        .back-to-top::before {
+            content: "⬆";
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .back-to-top:hover {
+            background: linear-gradient(135deg, #40a9ff, #69c0ff);
+            box-shadow: 0 12px 32px rgba(24, 144, 255, 0.4);
+            transform: translateY(-3px) scale(1.08);
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            display: none;
+        }
+
+        .toast-container-top {
+            position: fixed;
+            top: 260px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            z-index: 2000;
+            max-width: 90%;
+            width: 1000px;
+            pointer-events: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        .toast-container-bottom {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            z-index: 2000;
+            max-width: 90%;
+            width: 1000px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: linear-gradient(135deg, #52c41a, #95de64); /* 绿色渐变 */       
+            color: white;
+            padding: 16px 24px; /* 加大内边距 */
+            border-radius: 28px; /* 更圆润的边框 */
+            font-size: 15px;
+            box-shadow: 0 8px 24px rgba(82,196,26,0.25); /* 匹配主色调的投影 */
+            min-width: 120px;
+            font-weight: 500;
+            letter-spacing: 0.8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+            animation: toastSlideIn 0.5s ease-out;
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ff8a9e, #ff647d); /* 珊瑚粉色系 */
+            box-shadow: 0 8px 24px rgba(255,107,107,0.25);
+        }
+ 
+
+
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes toastSlideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .control-bar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 1rem;
+            }
+            
+        .filter-group {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .search-group {
+            width: 100%;
+            max-width: none;
+        }
+
+        .category-group {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .back-to-top {
+            bottom: 30px;
+            right: 30px;
+            padding: 14px 20px;
+            font-size: 18px;
+            border-radius: 10px;
+        }
+
+
+
+        .category-alert {
+            width: 100%;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.12);
+            box-sizing: border-box;
+            animation: alertFadeIn 0.5s ease-out;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(240, 240, 240, 0.8);
+        }
+        
+        @keyframes alertFadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(-10px) scale(0.98);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+            }
+        }
+        .alert-body {
+            color: #4a5568;
+            line-height: 1.6;
+            font-size: 16px;
+            padding: 20px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.9));
+            border-radius: 14px;
+            margin: 10px 0;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(240, 240, 240, 0.8);
+            transition: all 0.3s ease;
+        }
+        .alert-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: #2d3748;
+            text-align: left;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            background: linear-gradient(90deg, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+        .alert-message {
+            font-size: 18px;
+            margin-bottom: 14px;
+            text-align: left;
+            color: #4a5568;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            animation: messageFadeIn 0.6s ease-out;
+        }
+        
+        @keyframes messageFadeIn {
+            from { opacity: 0; transform: translateX(-5px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    
+        .highlight-category {
+            color: #4a5568;
+            font-weight: 600;
+            padding: 4px 10px;
+            background: linear-gradient(145deg, #f0f4f8, #e6edf5);
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+            justify-content: flex-start;
+        }
+        .category-tag {
+            color: #4a5568;
+            padding: 10px 18px;
+            background: linear-gradient(145deg, rgba(245, 248, 252, 0.95), rgba(235, 240, 248, 0.9));
+            border-radius: 12px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin: 5px 7px;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            display: inline-block;
+            transform: translateY(0);
+        }
+        
+        .category-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+            background: linear-gradient(145deg, rgba(240, 246, 255, 0.98), rgba(230, 240, 250, 0.95));
+        }
+        .search-keyword {
+            color: #1890ff;
+            font-weight: 600;
+            padding: 6px 12px;
+            background: linear-gradient(145deg, #e6f7ff, #d6eeff);
+            border-radius: 8px;
+            border: 1px solid rgba(145, 213, 255, 0.8);
+            box-shadow: 0 3px 8px rgba(24,144,255,0.15);
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+        .alert-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #2d3748;
+            text-shadow: 0 2px 4px rgba(45,55,72,0.1);
+            margin-bottom: 16px;
+        }
+        .category-list {
+            gap: 12px;
+            padding: 16px 0;
+            margin: 18px 0;
+            border-top: 1px solid rgba(237, 242, 247, 0.8);
+            border-bottom: 1px solid rgba(237, 242, 247, 0.8);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            max-width: 100%;
+            animation: listFadeIn 0.7s ease-out;
+            background: linear-gradient(180deg, rgba(249, 250, 251, 0.5), rgba(240, 244, 248, 0.5));
+            border-radius: 10px;
+        }
+        
+        @keyframes listFadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .alert-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+            justify-content: flex-end;
+            animation: actionsFadeIn 0.8s ease-out;
+        }
+        
+        @keyframes actionsFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .alert-btn {
+            color: #6366f1 !important;
+            padding: 10px 18px !important;
+            background: linear-gradient(145deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.08)) !important;
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+        .alert-btn:hover {
+            background: linear-gradient(145deg, rgba(99, 102, 241, 0.18), rgba(99, 102, 241, 0.14)) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+        .reset-btn::before {
+            content: "↻";
+            margin-right: 4px;
+        }
+        .search-btn::before {
+            content: "🔍";
+            margin-right: 4px;
+        }
+        .toast.warning {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border-left: 4px solid #f59e0b;
+            width: 100%;
+            box-sizing: border-box;
+            pointer-events: auto;
+            box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+            animation: warningSlideIn 0.5s ease-out;
+        }
+        
+        @keyframes warningSlideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(-10px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+  
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="control-bar">
+            <div class="upload-wrapper">
+                <button>
+                    上传文件
+                    <input type="file" id="file-input" accept=".txt">
+                </button>
+            </div>
+            <span class="file-info">当前文件：未选择文件</span>
+        </div>
+        <div class="control-bar" style="margin-top: 10px;">
+            <div class="filter-group">
+                <button class="reset-all-btn" id="reset-all">刷新</button>
+                <div class="category-group">
+                    <select id="main-category">
+                        <option value="">所有分类</option>
+                    </select>
+                    <button class="reset-btn" id="reset-category">重置分类</button>
+                </div>
+                <div class="search-group">
+                    <input type="text" id="search-input" placeholder="输入ID/分类/名称搜索...">
+                    <button id="search-btn">搜索</button>
+                    <button class="reset-search" id="reset-search">重置</button>
+                </div>
+            </div>
+        </div>
+
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>类别</th>
+                    <th>名称</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+        <div class="loading" id="loading">加载中...</div>
+    </div>
+
+    <button class="back-to-top" title="回到顶部"><span>顶部</span></button>
+    <div class="toast-container-top"></div>
+    <div class="toast-container-bottom"></div>
+
+    <script>
+        // 系统状态
+        let items = [];
+        let currentCategory = '';
+        let currentKeyword = '';
+        let currentPage = 1;
+        const pageSize = 500;
+        let allData = [];
+        let filteredData = [];
+        let isLoading = false;
+
+        // 初始化本地存储
+        function initFromLocalStorage() {
+            const savedData = localStorage.getItem('fileData');
+            if (savedData) {
+                try {
+                    const { items: savedItems, fileName } = JSON.parse(savedData);
+                    items = savedItems;
+                    const fileInfoElement = document.querySelector('.file-info');
+                    fileInfoElement.textContent = `当前文件：${fileName}`;
+                    fileInfoElement.title = `当前文件：${fileName}`;
+                    updateCategoryFilter();
+                    filterData(true);
+                } catch (error) {
+                    localStorage.removeItem('fileData');
+                }
+            }
+        }
+
+        // 文件处理（增加预排序优化）
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    items = e.target.result.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line)
+                        .map((line, index) => {
+                            const [id, category, name] = line.split(',');
+                            if (!id || !category || !name) {
+                                throw new Error(`第 ${index + 1} 行格式错误`);
+                            }
+                            return { 
+                                id: id.trim(), 
+                                category: category.trim(), 
+                                name: name.trim() 
+                            };
+                        })
+                        .sort((a, b) => a.id.localeCompare(b.id)); // 预排序优化
+
+                    localStorage.setItem('fileData', JSON.stringify({
+                        items,
+                        fileName: file.name
+                    }));
+
+                    const fileInfoElement = document.querySelector('.file-info');
+                    fileInfoElement.textContent = `当前文件：${file.name}`;
+                    fileInfoElement.title = `当前文件：${file.name}`;
+                    resetFilters();
+                    updateCategoryFilter();
+                    filterData(true);
+                } catch (error) {
+                    createToast(error.message, true);
+                    resetSystem();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 重置筛选
+        function resetFilters() {
+            document.getElementById('main-category').value = '';
+            document.getElementById('search-input').value = '';
+            currentCategory = '';
+            currentKeyword = '';
+        }
+
+        // 优化后的分类筛选（修复显示问题）
+        function updateCategoryFilter() {
+            const select = document.getElementById('main-category');
+            const currentData = currentKeyword ? getCurrentFilteredData() : items;
+            const categories = [...new Set(currentData.map(i => i.category))].sort();
+
+            select.innerHTML = '<option value="">所有分类</option>';
+            categories.forEach(cat => {
+                const option = new Option(cat, cat);
+                option.selected = (cat === currentCategory); // 保持选中状态
+                select.appendChild(option);
+            });
+        }
+
+        // 获取当前过滤数据
+        function getCurrentFilteredData() {
+            const searchLower = currentKeyword.toLowerCase();
+            return items.filter(item => 
+                item.name.toLowerCase().includes(searchLower) ||
+                item.id.toLowerCase().includes(searchLower) ||
+                item.category.toLowerCase().includes(searchLower)
+            );
+        }
+
+        // 优化后的数据筛选（提升性能）
+        function filterData(init = false) {
+            let filtered = getCurrentFilteredData();
+            const originalCategory = currentCategory;
+
+            // 全局无结果检测
+            if (filtered.length === 0) {
+                createToast('❌ 输入有误，请重新输入', true);
+                document.getElementById('search-input').value = '';
+                currentKeyword = '';
+                updateCategoryFilter();
+                return;
+            }
+            
+            // 检测分类有效性
+            const hasCategoryResults = filtered.some(item => item.category === currentCategory);
+            
+            if (currentCategory && !hasCategoryResults) {
+                showCategoryWarning(originalCategory);
+            }
+
+            // 执行正常过滤逻辑
+            if (currentCategory) {
+                filtered = filtered.filter(item => item.category === currentCategory);
+            }
+
+            allData = filtered;
+            currentPage = 1;
+            filteredData = [];
+            
+            updateCategoryFilter();
+            renderTable(init);
+        }
+        // 新增重置分类函数
+        function resetCategory() {
+            document.getElementById('main-category').value = '';
+            currentCategory = '';
+            filterData(true);
+        }
+        // 分类警告提示
+        function showCategoryWarning(category) {
+            // 获取当前搜索内容
+            const searchContent = currentKeyword;
+            // 获取搜索结果中包含的分类
+            const filtered = getCurrentFilteredData();
+            const categoriesInResults = [...new Set(filtered.map(item => item.category))];
+            
+            // 创建提示容器
+            const toastContent = document.createElement('div');
+            toastContent.className = 'category-alert';
+            
+            const alertBody = document.createElement('div');
+            alertBody.className = 'alert-body';
+            
+            // 创建提示内容
+            let alertContent = `
+                <div class="alert-title" style="text-align: center; font-size:23px;">⚠️分类【<span class="highlight-category">${category}</span>】里，没有包含“${searchContent}”的内容⚠️</div>
+                <div class="alert-title" style="text-align: center; font-size:23px;">💡可以继续搜索【<span class="highlight-category">${category}</span>】分类的内容，也可以【重置分类】或【选择分类】💡</div>
+               
+                <div class="alert-message"  style="font-size:22px;">“${searchContent}”的搜索结果中包含以下分类：</div>
+                <div class="category-list"  style=" font-size:20px; padding-left:30px;" >
+            `;
+            
+            // 添加分类文本（不使用按钮）并添加延迟显示效果
+            categoriesInResults.forEach((cat, index) => {
+                alertContent += `<span class="category-tag" style="animation-delay: ${index * 0.1}s">【${cat}】\n</span>`;
+            });
+            
+            alertContent += `
+                </div>
+            `;
+            
+            alertBody.innerHTML = alertContent;
+            
+            // 组装元素
+            toastContent.appendChild(alertBody);
+            
+            // 创建Toast容器
+            const toast = document.createElement('div');
+            toast.className = 'toast warning';
+            toast.appendChild(toastContent);
+            
+            // 显示提示
+            const container = document.querySelector('.toast-container-top');
+            container.prepend(toast);
+            
+            // 添加平滑淡出效果
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    toast.remove();
+                }, 500);
+            }, 9500); // 延长显示时间
+        }
+
+        // 优化渲染性能（使用文档片段）
+        function renderTable(init = false) {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = allData.slice(start, end);
+            
+            const tbody = document.getElementById('table-body');
+            const fragment = document.createDocumentFragment();
+
+            if(init) {
+                filteredData = pageData;
+                tbody.innerHTML = '';
+            } else {
+                filteredData = [...filteredData, ...pageData];
+            }
+
+            pageData.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>${item.category}</td>
+                    <td>${item.name}</td>
+                `;
+                fragment.appendChild(tr);
+            });
+
+            tbody.appendChild(fragment);
+            isLoading = false;
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // 滚动加载
+        function checkScroll() {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            if (scrollTop + clientHeight >= scrollHeight - 200 && !isLoading && currentPage * pageSize < allData.length) {
+                isLoading = true;
+                document.getElementById('loading').style.display = 'block';
+                currentPage++;
+                setTimeout(() => renderTable(), 200);
+            }
+        }
+
+        // 防抖函数（优化搜索性能）
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        // 创建提示
+        function createToast(message, isError = false, isCategory = false) {
+            const container = document.querySelector(isCategory ? '.toast-container-top' : '.toast-container-bottom');
+            const toast = document.createElement('div');
+            toast.className = `toast${isError ? ' error' : ''}`;
+            toast.textContent = message;
+
+            container.prepend(toast);
+            
+            // 添加淡出效果
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, isCategory ? 7700 : 2200);
+        }
+
+        // 清除所有分类提示的函数
+        function clearCategoryAlerts() {
+            const alerts = document.querySelectorAll('.category-alert');
+            alerts.forEach(alert => {
+                const toast = alert.closest('.toast');
+                if (toast) {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(-10px)';
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }
+            });
+        }
+
+        // 事件监听（增加防抖处理）
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.name.endsWith('.txt')) {
+                handleFileUpload(file);
+            } else {
+                createToast('请选择.txt文件', true, false);
+            }
+        });
+
+        document.getElementById('main-category').addEventListener('change', function(e) {
+            currentCategory = e.target.value;
+            clearCategoryAlerts(); // 清除所有分类提示
+            filterData(true);
+        });
+
+        document.getElementById('search-btn').addEventListener('click', function() {
+            currentKeyword = document.getElementById('search-input').value.trim().toLowerCase();
+            clearCategoryAlerts(); // 清除所有分类提示
+            filterData(true);
+        });
+
+        document.getElementById('reset-category').addEventListener('click', function() {
+            document.getElementById('main-category').value = '';
+            currentCategory = '';
+            clearCategoryAlerts(); // 清除所有分类提示
+            filterData(true);
+        });
+
+        document.getElementById('search-input').addEventListener('click', function() {
+            clearCategoryAlerts(); // 点击搜索框时清除所有分类提示
+        });
+
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                currentKeyword = this.value.trim().toLowerCase();
+                clearCategoryAlerts(); // 按下回车键时清除所有分类提示
+                filterData(true);
+            }
+        });
+
+        document.getElementById('reset-search').addEventListener('click', () => {
+            document.getElementById('search-input').value = '';
+            currentKeyword = '';
+            updateCategoryFilter(items); 
+            filterData(true);
+        });
+
+        document.getElementById('reset-all').addEventListener('click', function() {
+            // 重置分类和搜索
+            document.getElementById('main-category').value = '';
+            document.getElementById('search-input').value = '';
+            currentCategory = '';
+            currentKeyword = '';
+            clearCategoryAlerts(); // 清除所有分类提示
+            // 重新加载数据
+            updateCategoryFilter();
+            filterData(true);
+            // 显示提示
+            createToast('✅ 已重置所有筛选条件', false, false);
+        });
+
+        // 复制功能
+        document.addEventListener('click', async (e) => {
+            const td = e.target.closest('td');
+            if (td && td.closest('tbody')) {
+                try {
+                    const text = td.innerText;
+                    
+                    if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                    }
+                    
+                    createToast(`✅ 已复制：${text}`, false, false);
+                } catch (err) {
+                    console.error('复制失败:', err);
+                    createToast('❌ 复制失败，请手动选择内容', true, false);
+                }
+            }
+        });
+
+        // 回到顶部
+        const backToTopButton = document.querySelector('.back-to-top');
+        window.addEventListener('scroll', () => {
+            backToTopButton.classList.toggle('show', window.pageYOffset > 300);
+        });
+
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // 初始化系统
+        initFromLocalStorage();
+        window.addEventListener('scroll', checkScroll);
+    </script>
+</body>
+</html>
+
